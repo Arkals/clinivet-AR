@@ -101,7 +101,7 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
     <div class="cookie-inner">
       <div class="cookie-text">
         <strong>Usamos cookies necesarias</strong> para el funcionamiento básico del sitio.
-        Puedes aceptar estas cookies esenciales o rechazar las no esenciales. Consulta la política en <a href="#" class="link-light text-decoration-underline">Aviso de privacidad</a>.
+        Puedes aceptar estas cookies esenciales o rechazar las no esenciales. Consulta el <a href="<?= $BASE ?>/politica-cookies" class="link-light text-decoration-underline">uso de cookies</a> y el <a href="<?= $BASE ?>/aviso-privacidad" class="link-light text-decoration-underline">aviso de privacidad</a>.
       </div>
       <div class="cookie-actions">
         <button id="cookie-accept" class="btn btn-light btn-sm">Aceptar</button>

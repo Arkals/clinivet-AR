@@ -85,6 +85,15 @@ if (isset($_GET['route'])) {
             case 'cookies':
                 $_GET['page'] = 'cookies_consent';
                 break;
+            case 'aviso-privacidad':
+            case 'privacidad':
+            case 'privacy':
+                $_GET['page'] = 'privacy_policy';
+                break;
+            case 'politica-cookies':
+            case 'cookies-policy':
+                $_GET['page'] = 'cookies_policy';
+                break;
             default:
                 $_GET['page'] = 'home';
         }
@@ -169,6 +178,12 @@ if ($page === 'register') {
     \App\Helpers\Security::setSecureCookie('cookie_consent', $val);
     echo json_encode(['ok' => true, 'choice' => $val]);
     exit;
+} elseif ($page === 'privacy_policy') {
+    $view = dirname(__DIR__, 2) . '/frontend/app/Views/legal/privacy.php';
+    if (file_exists($view)) { include $view; } else { echo '<div class="container p-5"><h3>Aviso de privacidad</h3><p>Contenido no disponible.</p></div>'; }
+} elseif ($page === 'cookies_policy') {
+    $view = dirname(__DIR__, 2) . '/frontend/app/Views/legal/cookies.php';
+    if (file_exists($view)) { include $view; } else { echo '<div class="container p-5"><h3>Política de cookies</h3><p>Contenido no disponible.</p></div>'; }
 } else {
     $pc->home();
 }
