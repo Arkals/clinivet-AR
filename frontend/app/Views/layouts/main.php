@@ -109,7 +109,7 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
       </div>
     </div>
     <style>
-      .cookie-consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;background:rgba(11,143,143,0.96);color:#fff;border-radius:14px;box-shadow:0 10px 28px rgba(11,143,143,0.25)}
+      .cookie-consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;background:rgba(11,143,143,0.96);color:#fff;border-radius:14px;box-shadow:0 10px 28px rgba(11,143,143,0.25);transition:opacity .25s ease}
       .cookie-consent .cookie-inner{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px 18px}
       .cookie-consent .cookie-text{font-size:14px;line-height:1.4}
       .cookie-consent .cookie-actions{display:flex;gap:8px}
@@ -118,13 +118,15 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
     <script>
       (function(){
         var hasConsent = document.cookie.indexOf('cookie_consent=') !== -1;
-        if(!hasConsent){ document.getElementById('cookie-consent').style.display='block'; }
+        var el = document.getElementById('cookie-consent');
+        if(!hasConsent && el){ el.style.display='block'; el.style.opacity='1'; }
+        function hide(){ if(el){ el.style.opacity='0'; setTimeout(function(){ el.style.display='none'; }, 250); } }
         function send(choice){
           // Store UI cookie for fast checks; server sets HttpOnly cookie via endpoint
           document.cookie = 'cookie_consent='+choice+'; max-age='+(365*24*60*60)+'; path=/';
           fetch('<?= $BASE ?>/cookies-consent', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'choice='+encodeURIComponent(choice)})
             .catch(function(){});
-          document.getElementById('cookie-consent').style.display='none';
+          hide();
         }
         var a=document.getElementById('cookie-accept'); if(a) a.addEventListener('click', function(){send('accept')});
         var r=document.getElementById('cookie-reject'); if(r) r.addEventListener('click', function(){send('reject')});

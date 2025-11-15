@@ -203,8 +203,13 @@ if ($page === 'download_invoice') {
     if (!file_exists($path)) { header('HTTP/1.1 404 Not Found'); exit; }
     $basename = basename($path);
     header('Content-Description: File Transfer');
-    header('Content-Type: ' . (($type==='xml') ? 'application/xml' : 'application/pdf'));
-    header('Content-Disposition: attachment; filename="' . $basename . '"');
+    if ($type === 'xml') {
+        header('Content-Type: application/xml; charset=UTF-8');
+        header('Content-Disposition: inline; filename="' . $basename . '"');
+    } else {
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $basename . '"');
+    }
     header('Content-Length: ' . filesize($path));
     readfile($path);
     exit;
