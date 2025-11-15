@@ -24,8 +24,8 @@
             echo "<td>" . date('Y-m-d H:i', file_exists($inv['pdf_path']) ? filemtime($inv['pdf_path']) : time()) . "</td>";
             echo "<td>" . (isset($inv['total']) ? htmlspecialchars($inv['total']) : '-') . "</td>";
             $BASE = \App\Helpers\Security::base();
-            echo "<td> <a class=\"btn btn-sm btn-primary\" href=\"{$BASE}/descargar-factura?type=pdf&f=$pdf&oid=$folio\">PDF</a> ";
-            echo " <a class=\"btn btn-sm btn-outline-primary\" href=\"{$BASE}/descargar-factura?type=xml&f=$xml&oid=$folio\">XML</a></td>";
+            echo "<td> <a class=\"btn btn-sm btn-primary\" href=\"{$BASE}/descargar-factura?type=pdf&f=$pdf&oid=$folio\" download target=\"_blank\" rel=\"noopener\">PDF</a> ";
+            echo " <a class=\"btn btn-sm btn-outline-primary\" href=\"{$BASE}/descargar-factura?type=xml&f=$xml&oid=$folio\" target=\"_blank\" rel=\"noopener\">XML</a></td>";
             echo "</tr>";
           }
           echo '</tbody></table>';
