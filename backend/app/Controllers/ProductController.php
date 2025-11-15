@@ -15,7 +15,27 @@ class ProductController {
     }
     public function list() {
         $pdo = DB::get();
-        $stmt = $pdo->query("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id");
+        $min = isset($_GET['min']) ? max(0, floatval($_GET['min'])) : null;
+        $max = isset($_GET['max']) ? max(0, floatval($_GET['max'])) : null;
+        $sort = $_GET['sort'] ?? 'rel';
+
+        $sql = "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id";
+        $conds = [];
+        $params = [];
+        if ($min !== null) { $conds[] = 'p.price >= ?'; $params[] = $min; }
+        if ($max !== null) { $conds[] = 'p.price <= ?'; $params[] = $max; }
+        if ($conds) { $sql .= ' WHERE ' . implode(' AND ', $conds); }
+
+        switch ($sort) {
+            case 'price_asc': $sql .= ' ORDER BY p.price ASC'; break;
+            case 'price_desc': $sql .= ' ORDER BY p.price DESC'; break;
+            case 'name_asc': $sql .= ' ORDER BY p.name ASC'; break;
+            case 'name_desc': $sql .= ' ORDER BY p.name DESC'; break;
+            case 'newest': $sql .= ' ORDER BY p.id DESC'; break;
+            default: $sql .= ' ORDER BY p.id'; // relevancia por defecto
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         $products = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         // Filter out products without a visible image
         $products = $this->filterProductsWithVisibleImage($products);
@@ -24,8 +44,24 @@ class ProductController {
     }
     public function listByCategory($categoryId) {
         $pdo = DB::get();
-        $stmt = $pdo->prepare("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?");
-        $stmt->execute([$categoryId]);
+        $min = isset($_GET['min']) ? max(0, floatval($_GET['min'])) : null;
+        $max = isset($_GET['max']) ? max(0, floatval($_GET['max'])) : null;
+        $sort = $_GET['sort'] ?? 'rel';
+
+        $sql = "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?";
+        $params = [$categoryId];
+        if ($min !== null) { $sql .= ' AND p.price >= ?'; $params[] = $min; }
+        if ($max !== null) { $sql .= ' AND p.price <= ?'; $params[] = $max; }
+        switch ($sort) {
+            case 'price_asc': $sql .= ' ORDER BY p.price ASC'; break;
+            case 'price_desc': $sql .= ' ORDER BY p.price DESC'; break;
+            case 'name_asc': $sql .= ' ORDER BY p.name ASC'; break;
+            case 'name_desc': $sql .= ' ORDER BY p.name DESC'; break;
+            case 'newest': $sql .= ' ORDER BY p.id DESC'; break;
+            default: $sql .= ' ORDER BY p.id';
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         $products = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         // Filter out products without a visible image
         $products = $this->filterProductsWithVisibleImage($products);
@@ -34,11 +70,25 @@ class ProductController {
     }
     public function search($term, $categoryId = null) {
         $pdo = DB::get();
+        $min = isset($_GET['min']) ? max(0, floatval($_GET['min'])) : null;
+        $max = isset($_GET['max']) ? max(0, floatval($_GET['max'])) : null;
+        $sort = $_GET['sort'] ?? 'rel';
+
         $sql = "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE (p.name LIKE ? OR p.description LIKE ?)";
         $params = ["%$term%","%$term%"];
         if ($categoryId) {
             $sql .= " AND p.category_id = ?";
             $params[] = $categoryId;
+        }
+        if ($min !== null) { $sql .= ' AND p.price >= ?'; $params[] = $min; }
+        if ($max !== null) { $sql .= ' AND p.price <= ?'; $params[] = $max; }
+        switch ($sort) {
+            case 'price_asc': $sql .= ' ORDER BY p.price ASC'; break;
+            case 'price_desc': $sql .= ' ORDER BY p.price DESC'; break;
+            case 'name_asc': $sql .= ' ORDER BY p.name ASC'; break;
+            case 'name_desc': $sql .= ' ORDER BY p.name DESC'; break;
+            case 'newest': $sql .= ' ORDER BY p.id DESC'; break;
+            default: $sql .= ' ORDER BY p.id';
         }
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);

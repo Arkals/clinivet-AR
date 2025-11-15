@@ -1,4 +1,10 @@
 <?php include __DIR__ . '/../layouts/main.php'; ?>
+<?php
+  $BASE = \App\Helpers\Security::base();
+  $currentMax = isset($_GET['max']) ? max(0, (int)$_GET['max']) : 500;
+  if ($currentMax > 1000) { $currentMax = 1000; }
+  $currentSort = $_GET['sort'] ?? 'rel';
+?>
 
 <!-- Page Header -->
 <div class="page-header mb-5">
@@ -74,13 +80,13 @@
         </h5>
         <div class="price-filters">
           <div class="price-range">
-            <input type="range" class="form-range" min="0" max="1000" value="500" id="priceRange">
+            <input type="range" class="form-range" min="0" max="1000" value="<?= (int)$currentMax ?>" id="priceRange">
             <div class="d-flex justify-content-between">
               <span class="text-muted">$0</span>
               <span class="text-muted">$1000+</span>
             </div>
             <div class="price-display text-center mt-2">
-              <span class="badge bg-primary">Hasta $<span id="priceValue">500</span></span>
+              <span class="badge bg-primary">Hasta $<span id="priceValue"><?= (int)$currentMax ?></span></span>
             </div>
           </div>
         </div>
@@ -119,12 +125,13 @@
           </div>
         </div>
         <div class="col-md-6 text-md-end">
-          <select class="form-select form-select-sm" style="max-width: 200px; display: inline-block;">
-            <option>Ordenar por relevancia</option>
-            <option>Precio: menor a mayor</option>
-            <option>Precio: mayor a menor</option>
-            <option>Más populares</option>
-            <option>Mejor calificados</option>
+          <select id="sortSelect" class="form-select form-select-sm" style="max-width: 220px; display: inline-block;">
+            <option value="rel" <?= $currentSort==='rel'?'selected':'' ?>>Ordenar por relevancia</option>
+            <option value="price_asc" <?= $currentSort==='price_asc'?'selected':'' ?>>Precio: menor a mayor</option>
+            <option value="price_desc" <?= $currentSort==='price_desc'?'selected':'' ?>>Precio: mayor a menor</option>
+            <option value="name_asc" <?= $currentSort==='name_asc'?'selected':'' ?>>Nombre: A → Z</option>
+            <option value="name_desc" <?= $currentSort==='name_desc'?'selected':'' ?>>Nombre: Z → A</option>
+            <option value="newest" <?= $currentSort==='newest'?'selected':'' ?>>Más recientes</option>
           </select>
         </div>
       </div>
@@ -678,11 +685,43 @@ AOS.init({
 // Price range slider
 const priceRange = document.getElementById('priceRange');
 const priceValue = document.getElementById('priceValue');
+const sortSelect = document.getElementById('sortSelect');
 
 if (priceRange && priceValue) {
   priceRange.addEventListener('input', function() {
     priceValue.textContent = this.value;
   });
+  let debounce;
+  priceRange.addEventListener('change', function(){
+    clearTimeout(debounce);
+    debounce = setTimeout(applyFilters, 50);
+  });
+}
+
+if (sortSelect) {
+  sortSelect.addEventListener('change', function(){
+    applyFilters();
+  });
+}
+
+function applyFilters(){
+  try {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    if (priceRange) { params.set('max', String(priceRange.value)); }
+    if (sortSelect) { params.set('sort', String(sortSelect.value)); }
+    // Clean up impossible values
+    if (params.get('max') === '1000') { /* keep as upper bound marker */ }
+    url.search = params.toString();
+    window.location.href = url.toString();
+  } catch(e) {
+    // Fallback: build relative query
+    var qs = [];
+    if (priceRange) qs.push('max='+encodeURIComponent(priceRange.value));
+    if (sortSelect) qs.push('sort='+encodeURIComponent(sortSelect.value));
+    var q = qs.length?('?'+qs.join('&')):'';
+    window.location.search = q;
+  }
 }
 
 // View toggle
