@@ -96,15 +96,13 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
 </div> 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Cookie Consent Banner (rendered only if no consent cookie) -->
-  <?php if (empty($_COOKIE['cookie_consent'])): ?>
+  <!-- Cookie Consent Banner (visibility handled by JS based on cookie) -->
   <div id="cookie-consent" class="cookie-consent" style="display:none">
     <div class="cookie-inner">
       <div class="cookie-text">
         <strong>Usamos cookies necesarias</strong> para el funcionamiento básico del sitio.
         Puedes aceptar estas cookies esenciales o rechazar las no esenciales. Consulta el <a href="<?= $BASE ?>/politica-cookies" class="link-light text-decoration-underline">uso de cookies</a> y el <a href="<?= $BASE ?>/aviso-privacidad" class="link-light text-decoration-underline">aviso de privacidad</a>.
       </div>
-      <?php endif; ?>
       <div class="cookie-actions">
         <button id="cookie-accept" class="btn btn-light btn-sm">Aceptar</button>
         <button id="cookie-reject" class="btn btn-outline-light btn-sm">Rechazar</button>

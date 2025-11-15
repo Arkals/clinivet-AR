@@ -219,6 +219,8 @@ class OrderController {
                 $mailClass = 'PHPMailer\\PHPMailer\\PHPMailer';
                 $mail = new $mailClass(true);
                 try {
+                    // Ensure proper encoding for Spanish accents
+                    $mail->CharSet = 'UTF-8';
                     $mail->isSMTP();
                     $mail->Host = 'smtp.gmail.com'; 
                     $mail->SMTPAuth = true;
@@ -248,7 +250,9 @@ class OrderController {
                     }
                     $mail->send();
                 } catch (\Exception $e) {
-                    // Log mail failure if needed, but don't block the flow
+                    // Log mail failure for troubleshooting, but don't block the flow
+                    $log = date('c') . " - PHPMailer error sending to $email: " . $e->getMessage() . "\n";
+                    @file_put_contents(__DIR__ . '/../../../storage/invoices/mail_log.txt', $log, FILE_APPEND);
                 }
             } else {
             // Si PHPMailer no está disponible, intentar enviar el correo con mail() (sin adjuntos)
