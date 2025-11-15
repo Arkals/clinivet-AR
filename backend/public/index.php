@@ -11,6 +11,8 @@ use App\Controllers\ProductController;
 use App\Controllers\OrderController;
 use App\Controllers\AuthController;
 use App\Helpers\Security;
+// Apply secure cookie params before starting the session
+Security::applySessionCookieParams();
 session_start();
 
 $BASE = \App\Helpers\Security::base();
@@ -78,6 +80,10 @@ if (isset($_GET['route'])) {
                 elseif (!empty($seg[1]) && $seg[1] === 'productos' && !empty($seg[2]) && $seg[2] === 'nuevo') { $_GET['page'] = 'admin_create_product'; }
                 elseif (!empty($seg[1]) && in_array($seg[1], ['pedidos','orders'])) { $_GET['page'] = 'admin_orders'; }
                 else { $_GET['page'] = 'home'; }
+                break;
+            case 'cookies-consent':
+            case 'cookies':
+                $_GET['page'] = 'cookies_consent';
                 break;
             default:
                 $_GET['page'] = 'home';
@@ -156,6 +162,13 @@ if ($page === 'register') {
     $pc->adminCreateProduct();
 } elseif ($page === 'admin_orders') {
     $oc->adminOrders();
+} elseif ($page === 'cookies_consent') {
+    header('Content-Type: application/json');
+    $choice = $_POST['choice'] ?? $_GET['choice'] ?? 'accept';
+    $val = ($choice === 'reject') ? 'reject' : 'accept';
+    \App\Helpers\Security::setSecureCookie('cookie_consent', $val);
+    echo json_encode(['ok' => true, 'choice' => $val]);
+    exit;
 } else {
     $pc->home();
 }

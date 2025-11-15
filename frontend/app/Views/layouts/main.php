@@ -95,5 +95,41 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
 <div class="container content-wrap">
 </div> 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Cookie Consent Banner -->
+  <div id="cookie-consent" class="cookie-consent" style="display:none">
+    <div class="cookie-inner">
+      <div class="cookie-text">
+        <strong>Usamos cookies necesarias</strong> para el funcionamiento básico del sitio.
+        Puedes aceptar estas cookies esenciales o rechazar las no esenciales. Consulta la política en <a href="#" class="link-light text-decoration-underline">Aviso de privacidad</a>.
+      </div>
+      <div class="cookie-actions">
+        <button id="cookie-accept" class="btn btn-light btn-sm">Aceptar</button>
+        <button id="cookie-reject" class="btn btn-outline-light btn-sm">Rechazar</button>
+      </div>
+    </div>
+    <style>
+      .cookie-consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;background:rgba(11,143,143,0.96);color:#fff;border-radius:14px;box-shadow:0 10px 28px rgba(11,143,143,0.25)}
+      .cookie-consent .cookie-inner{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px 18px}
+      .cookie-consent .cookie-text{font-size:14px;line-height:1.4}
+      .cookie-consent .cookie-actions{display:flex;gap:8px}
+      @media(max-width:576px){.cookie-consent .cookie-inner{flex-direction:column;align-items:flex-start}}
+    </style>
+    <script>
+      (function(){
+        var hasConsent = document.cookie.indexOf('cookie_consent=') !== -1;
+        if(!hasConsent){ document.getElementById('cookie-consent').style.display='block'; }
+        function send(choice){
+          // Store UI cookie for fast checks; server sets HttpOnly cookie via endpoint
+          document.cookie = 'cookie_consent='+choice+'; max-age='+(365*24*60*60)+'; path=/';
+          fetch('<?= $BASE ?>/cookies-consent', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'choice='+encodeURIComponent(choice)})
+            .catch(function(){});
+          document.getElementById('cookie-consent').style.display='none';
+        }
+        var a=document.getElementById('cookie-accept'); if(a) a.addEventListener('click', function(){send('accept')});
+        var r=document.getElementById('cookie-reject'); if(r) r.addEventListener('click', function(){send('reject')});
+      })();
+    </script>
+  </div>
 </body>
 </html>

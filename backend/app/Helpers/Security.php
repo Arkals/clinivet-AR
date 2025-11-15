@@ -156,4 +156,47 @@ class Security {
             session_regenerate_id(true);
         }
     }
+
+    /**
+     * Apply secure session cookie params (call before session_start)
+     */
+    public static function applySessionCookieParams() {
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ((int)($_SERVER['SERVER_PORT'] ?? 80) === 443);
+        if (PHP_VERSION_ID >= 70300) {
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        } else {
+            // Fallback for very old PHP (not expected here)
+            session_set_cookie_params(0, '/; samesite=Lax', '', $secure, true);
+        }
+    }
+
+    /**
+     * Set a secure cookie with SameSite=Lax by default
+     */
+    public static function setSecureCookie(string $name, string $value, int $ttlSeconds = 31536000) {
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ((int)($_SERVER['SERVER_PORT'] ?? 80) === 443);
+        setcookie($name, $value, [
+            'expires' => time() + $ttlSeconds,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+        $_COOKIE[$name] = $value;
+    }
+
+    /**
+     * Cookie consent helpers
+     */
+    public static function hasCookieConsent(): bool {
+        return isset($_COOKIE['cookie_consent']) && $_COOKIE['cookie_consent'] === 'accept';
+    }
 }
