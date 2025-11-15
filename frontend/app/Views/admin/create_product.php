@@ -1,5 +1,5 @@
 <?php include __DIR__ . '/../../Views/layouts/main.php'; ?>
-<?php if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { header('Location: index.php'); exit; } ?>
+<?php if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { $BASE = \App\Helpers\Security::base(); header('Location: ' . $BASE . '/home'); exit; } ?>
 <div class="row justify-content-center">
   <div class="col-md-8">
     <h3>Crear producto</h3>
@@ -35,7 +35,8 @@
       </div>
       <button class="btn btn-success">Crear</button>
     </form>
-    <a class="btn btn-secondary mt-3" href="index.php?page=admin_products">Volver</a>
+    <?php $BASE = \App\Helpers\Security::base(); ?>
+    <a class="btn btn-secondary mt-3" href="<?= $BASE ?>/admin/productos">Volver</a>
   </div>
 </div>
 </body>

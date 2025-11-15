@@ -65,7 +65,8 @@ $cats = $pdo->query("SELECT * FROM categories")->fetchAll(PDO::FETCH_ASSOC);
   </div>
   <button class="btn btn-success">Guardar cambios</button>
 </form>
-<a class="btn btn-secondary mt-3" href="index.php?page=products">Volver a productos</a>
+<?php $BASE = \App\Helpers\Security::base(); ?>
+<a class="btn btn-secondary mt-3" href="<?= $BASE ?>/productos">Volver a productos</a>
 </div>
 </body>
 </html>

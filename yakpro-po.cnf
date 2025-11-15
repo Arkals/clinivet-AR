@@ -1,0 +1,56 @@
+<?php
+// YAK Pro - Php Obfuscator config for Clinivet
+// See: https://github.com/pk-fr/yakpro-po
+$conf = new stdClass();
+
+// Source and target
+$conf->source_directory = __DIR__;
+$conf->target_directory = __DIR__ . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . 'yakpro';
+
+// Core options (aggressive but usually safe for frameworks/controllers)
+$conf->strip_indentation = true;               // single line output
+$conf->shuffle_stmts = true;                    // shuffle statements
+$conf->obfuscate_string_literal = true;         // encode strings
+$conf->obfuscate_loop_statement = true;
+$conf->obfuscate_if_statement = true;
+
+$conf->obfuscate_constant_name  = true;
+$conf->obfuscate_variable_name  = true;
+$conf->obfuscate_function_name  = true;
+$conf->obfuscate_class_constant_name = true;
+$conf->obfuscate_class_name     = true;
+$conf->obfuscate_interface_name = true;
+$conf->obfuscate_trait_name     = true;
+$conf->obfuscate_property_name  = true;         // safe if you avoid PDO::FETCH_OBJ
+$conf->obfuscate_method_name    = true;
+$conf->obfuscate_namespace_name = true;
+
+// Scrambling strategy
+$conf->scramble_mode = 'hexa';                  // identifier|hexa|numeric
+$conf->scramble_length = 16;                    // up to 32 for hexa/numeric
+
+// Exclusions: do not include nor process these paths in the output
+$conf->t_skip = array(
+  'vendor/**',
+  'storage/**',
+  'build/**',
+  'frontend/public/uploads/**',
+  'frontend/app/Views/**',      // views stay readable and avoid embedded-PHP pitfalls
+  '.git/**',
+  'yakpro-po.cnf'
+);
+
+// Keep these files as-is (copied verbatim even if matched elsewhere)
+$conf->t_keep = array(
+  'frontend/app/Views/**'
+);
+
+// Ignore external symbols if using indirect calls (none expected here). Examples:
+$conf->t_ignore_functions = array();
+$conf->t_ignore_classes   = array();
+$conf->t_ignore_properties= array();
+$conf->t_ignore_methods   = array();
+$conf->t_ignore_constants = array();
+$conf->t_ignore_variables = array();
+
+return $conf;

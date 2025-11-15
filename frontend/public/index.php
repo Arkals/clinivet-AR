@@ -11,6 +11,7 @@ use App\Controllers\ProductController;
 use App\Controllers\OrderController;
 use App\Controllers\AuthController;
 session_start();
+$BASE = \App\Helpers\Security::base();
 $page = $_GET['page'] ?? 'home';
 $id = isset($_GET['id']) ? intval($_GET['id']) : null;
 $q = $_GET['q'] ?? null;
@@ -58,24 +59,10 @@ if ($page === 'register') {
     $pc->adminCreateProduct();
 } elseif ($page === 'admin_orders') {
     $oc->adminOrders();
-} elseif ($page === 'checkout') {
-    if (empty($_SESSION['user'])) {
-        header('Location: index.php?page=login&redirect=checkout');
-        exit;
-    }
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $oc->placeOrder();
-    } else {
-        $oc->checkoutForm();
-    }
-} else {
-    $pc->home();
-}
-// Download invoice file (pdf or xml) - checks ownership
-if ($page === 'download_invoice') {
+} elseif ($page === 'download_invoice') {
+    // Download invoice file (pdf or xml) - checks ownership
     if (empty($_SESSION['user'])) { header('HTTP/1.1 403 Forbidden'); exit; }
     $type = $_GET['type'] ?? 'pdf';
-    $file = $_GET['f'] ?? '';
     $oid = intval($_GET['oid'] ?? 0);
     $pdo = \App\Helpers\DB::get();
     $stmt = $pdo->prepare("SELECT o.user_id, i.pdf_path, i.xml_path FROM invoices i LEFT JOIN orders o ON i.order_id = o.id WHERE o.id = ? LIMIT 1");
@@ -92,4 +79,16 @@ if ($page === 'download_invoice') {
     header('Content-Length: ' . filesize($path));
     readfile($path);
     exit;
+} elseif ($page === 'checkout') {
+    if (empty($_SESSION['user'])) {
+        header('Location: ' . $BASE . '/iniciar-sesion?redirect=checkout');
+        exit;
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $oc->placeOrder();
+    } else {
+        $oc->checkoutForm();
+    }
+} else {
+    $pc->home();
 }

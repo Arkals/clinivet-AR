@@ -1,83 +1,66 @@
-# punto_de_venta_linux
+# Clinivet Store
 
-🧭 Flujo de trabajo con ramas Git: main, dev y vat
-Este proyecto utiliza un flujo de trabajo basado en ramas para mantener el código organizado y facilitar la colaboración. A continuación se describen las instrucciones para trabajar correctamente con las ramas main, dev y vat.
-🌿 Ramas principales
-|  |  | 
-| main :Rama estable. Contiene el código listo para producción.
-| dev  :Rama de desarrollo. Aquí se integran nuevas funcionalidades antes de pasar a main.
-| vat :Rama experimental. Se usa para pruebas, prototipos o ideas en desarrollo.
+Guía rápida de ejecución local, URLs limpias y ofuscación.
 
+## Requisitos
+- XAMPP (Apache + PHP >= 7.4)
+- Extensiones PHP habituales (pdo_mysql, gd, openssl, etc.)
+- Composer (opcional)
+- git (solo para ofuscación completa con YAK Pro)
 
+## Ejecutar en local (XAMPP)
+- Carpeta del proyecto: `C:\xampp\htdocs\clinivet`.
+- Asegúrate que Apache tenga `mod_rewrite` activo y `AllowOverride All`.
+- Navega a: `http://localhost/clinivet/home` (URLs limpias habilitadas).
 
-🛠️ Cómo trabajar con las ramas
-1. Clona el repositorio
-git clone
-cd repositorio
+## URLs limpias
+- `.htaccess` en la raíz reescribe de forma interna los slugs a `backend/public/index.php`.
+- Ejemplos:
+  - `/clinivet/home`
+  - `/clinivet/productos`
+  - `/clinivet/categoria/3`
+  - `/clinivet/checkout`
+  - `/clinivet/facturas`
 
+## Estructura
+- `backend/app` — Controladores y helpers.
+- `frontend/app/Views` — Vistas.
+- `vendor/` — Dependencias de Composer.
+- `storage/` — Archivos generados (facturas, etc.).
+- `scripts/` — Utilidades (ofuscación/minificación).
 
-2. Cambia a la rama de desarrollo
-git checkout dev
+## Ofuscación ligera (incluida)
+Minifica PHP/JS/CSS y copia estáticos, evitando `vendor/` y vistas.
 
+```powershell
+cd C:\xampp\htdocs\clinivet
+php scripts/obfuscate.php
+```
 
-3. Crea una nueva rama para tu tarea
-git checkout -b (siempre iniciar con la inicial de cada rama princila)nombre-de-tu-rama
-DEV_inicio_sesion
-VAT_prueba_tiket
+Salida: `build/obfuscated/`.
 
-4. Realiza tus cambios y haz commits descriptivos
-git add .
-git commit -m "Agrega formulario de login con validación"
+## Ofuscación completa (renombrado de símbolos)
+Usa [YAK Pro - Php Obfuscator](https://github.com/pk-fr/yakpro-po) para ofuscar clases, funciones, variables y cadenas.
 
+1) Requisitos: `git` y `php` (CLI) en PATH.
 
-💡 Usa mensajes de commit claros y concisos. Evita mensajes genéricos como "update" o "fix".
+2) Ejecuta en PowerShell:
+```powershell
+cd C:\xampp\htdocs\clinivet\scripts
+./yakpro_run.ps1
+```
 
-5. Sube tu rama al repositorio remoto
-git push origin nombre-de-tu-rama
+- El script clona `yakpro-po` (y `nikic/PHP-Parser`) si no existen.
+- Usa `yakpro-po.cnf` de la raíz para configuración.
+- Salida: `build/yakpro/yakpro-po/`.
 
+3) Despliegue: apunta tu servidor al directorio ofuscado generado.
 
+### Configuración (yakpro-po.cnf)
+- Excluye: `vendor/`, `storage/`, `frontend/app/Views/`, `frontend/public/uploads/`, `build/`.
+- Activa: ofuscación de cadenas, nombres de funciones, clases, métodos, propiedades, variables, namespaces y shuffle de sentencias.
+- Si usas nombres dinámicos (llamadas indirectas), agrega excepciones en `t_ignore_*`.
 
-🔁 Cómo hacer un Pull Request (PR)
-- Ve a GitHub y abre un Pull Request desde tu rama hacia dev.
-- Agrega una descripción clara de los cambios realizados.
-- Solicita revisión si es necesario.
-- Una vez aprobado, se hace merge a dev.
-✅ Los cambios en main solo se hacen desde dev mediante un Pull Request aprobado.
-
-
-🧪 Rama vat: uso experimental
-
-📌 Buenas prácticas
-
-## Estructura reorganizada (backend / frontend)
-
-He reestructurado el proyecto en dos entradas principales: `backend/` y `frontend/`.
-
-- `backend/public/index.php` - Entrada para acciones de backend (controladores, API, administración).
-- `frontend/public/index.php` - Entrada pública del sitio que usa los controladores y vistas en `app/`.
-- `public/index.php` - Compatibility: reenvía a `frontend/public/index.php` si existe.
-
-Cómo ejecutar en tu entorno local (XAMPP):
-
-1. Apunta tu VirtualHost o DocumentRoot a `c:/xampp/htdocs/punto_de_venta_front/public`.
-2. Accede a `http://localhost/` para ver el frontend (se reenvía internamente).
-
-Notas:
-- Los archivos de aplicación (controllers, helpers y views) permanecen en `app/` y son usados por ambas entradas.
-- Las dependencias de Composer siguen en `vendor/` y son cargadas por los entrypoints.
-
-Probar localmente (XAMPP)
-
-1. Asegúrate de que `c:/xampp/htdocs/punto_de_venta_front/public` sea el DocumentRoot de tu VirtualHost o sitio en XAMPP.
-2. Reinicia Apache.
-3. Abre en el navegador: http://localhost/ — esto cargará `public/index.php` que reenvía al `frontend`.
-
-Comprobaciones que ya hice
-- Creé `backend/public/index.php` y `frontend/public/index.php`.
-- Moví controladores y helpers a `backend/app` y vistas a `frontend/app/Views`.
-- Actualicé `public/index.php` para mantener compatibilidad.
-
-Notas finales
-- Si quieres que mueva también `vendor/` dentro de `backend/`, dime y lo hago (recomiendo mantener `vendor/` en la raíz para simplicidad).
-- Si aparecen errores en tiempo de ejecución relacionados con rutas, comparte el log de Apache/PHP y lo depuro.
-
+## Notas
+- Los 301 se cachean: usa ventana privada si cambias reglas de reescritura.
+- Si algo falla, revisa `apache/error.log` y comparte el mensaje para depurar.

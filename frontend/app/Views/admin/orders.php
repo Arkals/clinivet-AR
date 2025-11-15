@@ -1,5 +1,5 @@
 <?php include __DIR__ . '/../../Views/layouts/main.php'; ?>
-<?php if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { header('Location: index.php'); exit; } ?>
+<?php if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { $BASE = \App\Helpers\Security::base(); header('Location: ' . $BASE . '/home'); exit; } ?>
 <div class="row">
   <div class="col-md-10 offset-md-1">
     <h3>Panel de administración - Órdenes</h3>

@@ -1,12 +1,14 @@
 <?php
 namespace App\Controllers;
 use App\Helpers\DB;
+use App\Helpers\Security;
 use App\Helpers\PACClient;
 class OrderController {
     public function checkoutForm() {
         $cart = $_SESSION['cart'] ?? [];
+        $BASE = \App\Helpers\Security::base();
         if (empty($cart)) {
-            header('Location: index.php');
+            header('Location: ' . $BASE . '/home');
             exit;
         }
         include __DIR__ . '/../../../frontend/app/Views/orders/checkout.php';
@@ -22,9 +24,9 @@ class OrderController {
 
         $emisor = [
             'rfc' => 'AAA010101AAA',
-            'nombre' => 'MiTienda S.A. de C.V.',
+            'nombre' => 'Clinivet S.A. de C.V.',
             'regimen' => '601',
-            'razon_social' => 'MiTienda S.A. de C.V.'
+            'razon_social' => 'Clinivet S.A. de C.V.'
         ];
         $name = $_POST['name'] ?? 'Cliente Demo';
         $email = $_POST['email'] ?? 'cliente@local';
@@ -80,12 +82,20 @@ class OrderController {
     }
         
         $cart = $_SESSION['cart'] ?? [];
+        $BASE = \App\Helpers\Security::base();
         if (empty($cart)) {
-            header('Location: index.php');
+            header('Location: ' . $BASE . '/home');
             exit;
         }
-        $name = $_POST['name'] ?? 'Cliente';
-        $email = $_POST['email'] ?? 'cliente@local';
+        $name = Security::sanitizeString($_POST['name'] ?? 'Cliente');
+        $email = trim($_POST['email'] ?? 'cliente@local');
+        
+        // Validate email
+        if (!Security::validateEmail($email)) {
+            $_SESSION['flash_error'] = 'Email inválido';
+            header('Location: ' . $BASE . '/checkout');
+            exit;
+        }
         // Only card payments supported here; bank transfer was removed
         $paymentMethod = 'card';
         $stripeToken = $_POST['stripeToken'] ?? null;
@@ -120,13 +130,13 @@ class OrderController {
             }
             // Attempt to charge via Stripe when configured
             $pagoExitoso = false;
-            $orderStatus = 'completed'; // mark completed after successful card payment
+            $orderStatus = 'paid'; // match DB ENUM('pending','paid','shipped','cancelled')
             $chargeId = null;
             // OMITIR pago real: simular éxito siempre
             $pagoExitoso = true;
             if (!$pagoExitoso) {
                 $_SESSION['flash_error'] = 'El pago no fue exitoso. Revisa los datos de tu tarjeta.';
-                header('Location: index.php?page=checkout');
+                header('Location: ' . $BASE . '/checkout');
                 exit;
             }
             $stmt = $pdo->prepare("INSERT INTO orders (user_id, total, status) VALUES (?,?,?)");
@@ -143,9 +153,9 @@ class OrderController {
             if (!is_dir($dir)) mkdir($dir, 0777, true);
             $emisor = [
                 'rfc' => 'AAA010101AAA',
-                'nombre' => 'MiTienda S.A. de C.V.',
+                'nombre' => 'Clinivet S.A. de C.V.',
                 'regimen' => '601',
-                'razon_social' => 'MiTienda S.A. de C.V.'
+                'razon_social' => 'Clinivet S.A. de C.V.'
             ];
             $receptor = [
                 'rfc' => ($_POST['rfc'] ?? 'XAXX010101000'),
@@ -216,7 +226,7 @@ class OrderController {
                     $mail->Password = getenv('SMTP_PASS') ?: 'gficrgeogbibtaae'; 
                     $mail->SMTPSecure = 'tls';
                     $mail->Port = 587;
-                    $mail->setFrom('puntodeventaumb@gmail.com', 'MiTienda');
+                    $mail->setFrom('puntodeventaumb@gmail.com', 'Clinivet');
                     $mail->addAddress($email, $name);
                     $mail->Subject = 'Factura electr\u00f3nica de tu compra en MiTienda';
                     $mail->isHTML(true);
@@ -242,11 +252,11 @@ class OrderController {
                 }
             } else {
             // Si PHPMailer no está disponible, intentar enviar el correo con mail() (sin adjuntos)
-                    $subject = 'Factura electronica de tu compra en MiTienda';
+                    $subject = 'Factura electronica de tu compra en Clinivet';
                     $message = "Gracias por tu compra!\n\n";
                     $message .= "Adjuntamos tu factura electr\u00f3nica en PDF (si tu servidor soporta adjuntos por mail()).\n";
                     $message .= "UUID: $uuid\nSerie/Folio: $serie-$folio\nTotal: $total\n";
-                    $headers = "From: MiTienda <" . (getenv('SMTP_USER') ?: 'puntodeventaumb@gmail.com') . ">\r\n" .
+                    $headers = "From: Clinivet <" . (getenv('SMTP_USER') ?: 'puntodeventaumb@gmail.com') . ">\r\n" .
                                "MIME-Version: 1.0\r\n" .
                                "Content-Type: text/plain; charset=UTF-8\r\n";
                     $mailSent = false;
@@ -261,19 +271,20 @@ class OrderController {
         } catch (\Exception $e) {
             $pdo->rollBack();
             $_SESSION['flash_error'] = 'Ocurrió un error procesando la orden: ' . $e->getMessage();
-            header('Location: index.php?page=checkout');
+            header('Location: ' . $BASE . '/checkout');
             exit;
         }
     }
 
     // Panel de administración: listar órdenes y permitir marcarlas como pagadas/completadas
     public function adminOrders() {
-        if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { header('Location: index.php'); exit; }
+        $BASE = \App\Helpers\Security::base();
+        if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { header('Location: ' . $BASE . '/home'); exit; }
         $pdo = DB::get();
     // Procesar acción del formulario de administración de órdenes
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_paid' && !empty($_POST['order_id'])) {
             $oid = intval($_POST['order_id']);
-            $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?")->execute(['completed', $oid]);
+            $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?")->execute(['paid', $oid]);
         }
         $stmt = $pdo->query("SELECT o.*, u.email as user_email FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.id DESC");
         $orders = $stmt->fetchAll(\PDO::FETCH_ASSOC);

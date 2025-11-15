@@ -1,0 +1,10 @@
+Options -Indexes
+RewriteEngine On
+
+# No external redirects here to avoid loops.
+# All routing is handled by the root /clinivet/.htaccess which internally
+# rewrites slugs to backend/public/index.php.
+
+# Serve existing assets if this folder is hit directly (rare in dev)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]

@@ -4,6 +4,7 @@
 
 $issues = array();
 
+// Reverted to previous platform requirement to restore compatibility
 if (!(PHP_VERSION_ID >= 80000)) {
     $issues[] = 'Your Composer dependencies require a PHP version ">= 8.0.0". You are running ' . PHP_VERSION . '.';
 }

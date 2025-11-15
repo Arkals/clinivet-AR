@@ -16,7 +16,8 @@
         <h3>Pago recibido</h3>
         <p>Gracias por tu compra. Se ha generado la factura y se ha enviado por correo.</p>
       <?php endif; ?>
-      <a href="index.php" class="btn btn-primary">Volver a inicio</a>
+      <?php $BASE = \App\Helpers\Security::base(); ?>
+      <a href="<?= $BASE ?>/home" class="btn btn-primary">Volver a inicio</a>
     </div>
   </div>
 </div>

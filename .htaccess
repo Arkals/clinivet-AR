@@ -1,0 +1,23 @@
+Options -Indexes
+RewriteEngine On
+RewriteBase /clinivet/
+
+# Servir archivos y directorios reales sin reescritura
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Ruta vacía -> home (evita depender de DirectoryIndex)
+RewriteRule ^$ backend/public/index.php?route=home [L,QSA]
+
+# Redirect index.php?route=slug a slug limpio (solo si viene del navegador)
+RewriteCond %{THE_REQUEST} \s/clinivet/index\.php\?route=([^\s&]+) [NC]
+RewriteRule ^index\.php$ /clinivet/%1 [R=301,L]
+
+# Redirect index.php sin parámetros a home
+RewriteCond %{THE_REQUEST} \s/clinivet/index\.php[\s?] [NC]
+RewriteCond %{QUERY_STRING} ^$ [NC]
+RewriteRule ^index\.php$ /clinivet/home [R=301,L]
+
+# Reescritura interna (no visible): slug -> backend con route param
+RewriteRule ^(.+)$ backend/public/index.php?route=$1 [L,QSA]

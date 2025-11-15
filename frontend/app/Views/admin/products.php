@@ -1,9 +1,10 @@
 <?php include __DIR__ . '/../../Views/layouts/main.php'; ?>
-<?php if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { header('Location: index.php'); exit; } ?>
+<?php if (empty($_SESSION['user']) || empty($_SESSION['user']['is_admin'])) { $BASE = \App\Helpers\Security::base(); header('Location: ' . $BASE . '/home'); exit; } ?>
 <div class="row">
   <div class="col-md-10 offset-md-1">
     <h3>Panel de administración - Productos</h3>
-    <a class="btn btn-success mb-3" href="index.php?page=admin_create_product">Nuevo producto</a>
+    <?php $BASE = \App\Helpers\Security::base(); ?>
+    <a class="btn btn-success mb-3" href="<?= $BASE ?>/admin/productos/nuevo">Nuevo producto</a>
     <table class="table">
       <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th></tr></thead>
       <tbody>

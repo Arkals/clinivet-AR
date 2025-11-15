@@ -12,9 +12,9 @@ $pdfPath = __DIR__ . '/../storage/invoices/order_' . $orderId . '.pdf';
 
 $emisor = [
     'rfc' => 'AAA010101AAA',
-    'nombre' => 'MiTienda S.A. de C.V.',
+    'nombre' => 'Clinivet S.A. de C.V.',
     'regimen' => '601',
-    'razon_social' => 'MiTienda S.A. de C.V.'
+    'razon_social' => 'Clinivet S.A. de C.V.'
 ];
 $receptor = [
     'rfc' => 'XAXX010101000',

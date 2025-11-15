@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Serie="A" Folio="13" Fecha="2025-09-26T10:13:17" Total="59.00" Moneda="MXN" MetodoPago="PUE" FormaPago="04" TipoDeComprobante="I" LugarExpedicion="64000">
-  <cfdi:Emisor Rfc="AAA010101AAA" Nombre="MiTienda S.A. de C.V." RegimenFiscal="601" />
-  <cfdi:Receptor Rfc="aeva030827aq2" Nombre="alexis arce valeriano" UsoCFDI="G03" />
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Serie="A" Folio="13" Fecha="2025-10-04T17:16:56" Total="933.00" Moneda="MXN" MetodoPago="PUE" FormaPago="04" TipoDeComprobante="I" LugarExpedicion="64000">
+  <cfdi:Emisor Rfc="AAA010101AAA" Nombre="Clinivet S.A. de C.V." RegimenFiscal="601" />
+  <cfdi:Receptor Rfc="aeva030827aq2" Nombre="aldo zuñiga" UsoCFDI="G03" />
   <cfdi:Conceptos>
-    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Catnip natural 50g" ValorUnitario="59.00" Importe="59.00" />
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="2" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Arena sanitaria para gatos" ValorUnitario="149.00" Importe="298.00" />
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Arnés para perros" ValorUnitario="259.00" Importe="259.00" />
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Bolsa de adiestramiento para perros" ValorUnitario="99.00" Importe="99.00" />
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Catnip natural" ValorUnitario="59.00" Importe="59.00" />
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Cepillo de goma para perros" ValorUnitario="129.00" Importe="129.00" />
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="H87" Unidad="Pieza" Descripcion="Collar reflectante para gatos" ValorUnitario="89.00" Importe="89.00" />
   </cfdi:Conceptos>
   <cfdi:Complemento>
-    <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" Version="1.1" UUID="70CD0C755017E3D40DB0E09E32631525" FechaTimbrado="2025-09-26T10:13:17" RfcProvCertif="AAA010101AAA" SelloCFD="SELLOFAKE" NoCertificadoSAT="00001000000403258748" />
+    <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" Version="1.1" UUID="80E0FCFD2B9418272342B2512151381F" FechaTimbrado="2025-10-04T17:16:56" RfcProvCertif="AAA010101AAA" SelloCFD="SELLOFAKE" NoCertificadoSAT="00001000000403258748" />
   </cfdi:Complemento>
 </cfdi:Comprobante>

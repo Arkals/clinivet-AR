@@ -1,3 +1,13 @@
+<?php
+use App\Helpers\Security;
+$BASE = Security::base();
+$baseUrl = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+if ($baseUrl === '/' || $baseUrl === '\\') { $baseUrl = ''; }
+$assetBaseUrl = $baseUrl;
+if (preg_match('#/backend/public$#', $baseUrl)) {
+  $assetBaseUrl = preg_replace('#/backend/public$#', '/frontend/public', $baseUrl);
+}
+?>
 <!doctype html>
 <html lang="es">
 <head>
@@ -20,7 +30,8 @@
     body { font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--page-bg); color:#133; }
     .topbar{ background:linear-gradient(90deg,var(--primary) 0%, #2db5b0 100%); box-shadow:0 4px 14px rgba(11,143,143,0.12); }
     .topbar .container{ display:flex; align-items:center; gap:16px; padding:14px 18px; }
-    .brand { color:#fff; font-weight:700; font-size:22px; display:flex; align-items:center; gap:10px; }
+    .brand { color:#fff; font-weight:700; font-size:22px; display:flex; align-items:center; gap:10px; text-decoration:none; cursor:pointer; }
+    .brand:focus, .brand:focus-visible { outline: 3px solid rgba(255,255,255,0.18); outline-offset:3px; border-radius:10px; }
     .brand .logo-badge{ background:rgba(255,255,255,0.12); padding:8px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
     .search-bar{ flex:1; max-width:920px; }
     .search-bar .form-control, .search-bar .form-select{ border-radius:10px; }
@@ -40,13 +51,12 @@
 <body>
 <div class="topbar">
   <div class="container">
-    <div class="brand">
+    <a class="brand" href="<?= $BASE ?>/home" role="button" aria-label="Ir al inicio - Clinivet">
       <div class="logo-badge"><i class="bi bi-heart-pulse-fill" style="font-size:20px;color:#fff"></i></div>
       Clinivet <small style="opacity:0.9;font-weight:600;margin-left:6px">Tienda y servicios</small>
-    </div>
+    </a>
     <div class="search-bar">
-      <form method="get" action="index.php" class="d-flex">
-        <input type="hidden" name="page" value="products">
+      <form method="get" action="<?= $BASE ?>/productos" class="d-flex">
         <input class="form-control me-2" type="search" name="q" placeholder="Buscar productos, p.ej. alimento para perros" aria-label="Buscar" value="<?=htmlspecialchars($_GET['q'] ?? '')?>">
         <select name="cat" class="form-select me-2" style="max-width:180px">
           <option value="">Todas las categorías</option>
@@ -65,16 +75,16 @@
       <?php if (!empty($_SESSION['user'])): ?>
         <div class="d-flex align-items-center gap-2">
           <span style="color:#fff; opacity:0.95; font-weight:600;"><i class="bi bi-person-circle" style="margin-right:6px"></i><?=htmlspecialchars($_SESSION['user']['name'])?></span>
-          <a href="index.php?page=invoices" class="btn btn-outline-primary btn-sm"> <i class="bi bi-receipt"></i> Mis facturas</a>
-          <a href="index.php?page=logout" class="btn btn-danger btn-sm">Salir</a>
+          <a href="<?= $BASE ?>/facturas" class="btn btn-outline-primary btn-sm"> <i class="bi bi-receipt"></i> Mis facturas</a>
+          <a href="<?= $BASE ?>/logout" class="btn btn-danger btn-sm">Salir</a>
           <?php if (!empty($_SESSION['user']['is_admin'])): ?>
-            <a href="index.php?page=admin_products" class="btn btn-warning btn-sm"><i class="bi bi-gear"></i> Admin</a>
+            <a href="<?= $BASE ?>/admin/productos" class="btn btn-warning btn-sm"><i class="bi bi-gear"></i> Admin</a>
           <?php endif; ?>
         </div>
       <?php else: ?>
-        <a href="index.php?page=login" class="btn btn-outline-primary btn-sm"><i class="bi bi-box-arrow-in-right"></i> Iniciar sesión</a>
+        <a href="<?= $BASE ?>/iniciar-sesion" class="btn btn-outline-primary btn-sm"><i class="bi bi-box-arrow-in-right"></i> Iniciar sesión</a>
       <?php endif; ?>
-      <a href="index.php?page=cart" class="btn btn-success ms-2">
+      <a href="<?= $BASE ?>/carrito" class="btn btn-success ms-2">
         <i class="bi bi-cart" style="margin-right:6px"></i>
         <span class="d-none d-sm-inline">Carrito</span>
         <span class="cart-badge ms-2"><?= isset($_SESSION['cart']) ? array_sum($_SESSION['cart']):0 ?></span>
@@ -83,31 +93,7 @@
   </div>
 </div>
 <div class="container content-wrap">
-  <!-- page content will be injected by views below this file -->
-  
-</div> <!-- /.container content-wrap -->
-
-<!-- Minimal footer removed per request. Keep Bootstrap JS for components -->
+</div> 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

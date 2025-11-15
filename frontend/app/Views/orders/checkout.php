@@ -20,6 +20,12 @@ if (file_exists($stripePath)) {
   if (!defined('STRIPE_SECRET_KEY')) define('STRIPE_SECRET_KEY', '');
   if (!defined('STRIPE_PUBLISHABLE_KEY')) define('STRIPE_PUBLISHABLE_KEY', '');
 }
+// Compute publishable key and whether to use Stripe.js (disabled on localhost/HTTP)
+$pk = (defined('STRIPE_PUBLISHABLE_KEY') ? STRIPE_PUBLISHABLE_KEY : '');
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$isHttp = empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off';
+if ($isHttp || stripos($host, 'localhost') !== false) { $pk = ''; }
+$useStripe = ($pk !== '');
 ?>
 <div class="row justify-content-center">
   <div class="col-md-6">
@@ -29,23 +35,47 @@ if (file_exists($stripePath)) {
         <div class="alert alert-danger"><?=htmlspecialchars($_SESSION['flash_error'])?></div>
         <?php unset($_SESSION['flash_error']); ?>
       <?php endif; ?>
-      <form method="post" id="checkoutForm">
-        <!-- Tarjeta visual compacta al inicio -->
+      <form method="post" id="checkoutForm" novalidate>
+        <!-- Tarjeta visual / inputs de tarjeta -->
         <div class="mb-2">
-          <div class="card p-2" style="background:linear-gradient(135deg,#0b8f8f 0%, #2db5b0 100%); color:#fff; border-radius:10px; min-height:110px; max-width:340px; margin:auto; box-shadow:0 2px 8px rgba(11,143,143,0.10);">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div style="font-weight:700;letter-spacing:0.6px;font-size:1.1em;">Clinivet</div>
-              <div id="card-brand" style="font-size:18px;font-weight:700">&nbsp;</div>
+          <?php if ($useStripe): ?>
+            <div class="card p-2" style="background:linear-gradient(135deg,#0b8f8f 0%, #2db5b0 100%); color:#fff; border-radius:10px; min-height:110px; max-width:340px; margin:auto; box-shadow:0 2px 8px rgba(11,143,143,0.10);">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div style="font-weight:700;letter-spacing:0.6px;font-size:1.1em;">Clinivet</div>
+                <div id="card-brand" style="font-size:18px;font-weight:700">&nbsp;</div>
+              </div>
+              <div class="card p-1 mb-1" style="background:rgba(255,255,255,0.10); border-radius:8px;">
+                <div id="card-element" style="min-height:32px; padding:4px; color:#fff;"></div>
+              </div>
+              <div class="d-flex justify-content-between" style="font-size:13px;opacity:0.92;">
+                <div><small>Nombre</small> <span><?=htmlspecialchars($_SESSION['user']['name'] ?? '')?></span></div>
+                <div><small>Expira</small> <span>MM/AA</span></div>
+              </div>
+              <div id="card-errors" role="alert" class="form-text text-warning mt-1" style="margin-bottom:2px;"></div>
             </div>
-            <div class="card p-1 mb-1" style="background:rgba(255,255,255,0.10); border-radius:8px;">
-              <div id="card-element" style="min-height:32px; padding:4px; color:#fff;"></div>
+          <?php else: ?>
+            <div class="card p-3" style="background:linear-gradient(135deg,#0b8f8f 0%, #2db5b0 100%); color:#fff; border-radius:10px; max-width:420px; margin:auto; box-shadow:0 2px 8px rgba(11,143,143,0.10);">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div style="font-weight:700;letter-spacing:0.6px;font-size:1.1em;">Clinivet</div>
+                <div id="card-brand" style="font-size:18px;font-weight:700">&nbsp;</div>
+              </div>
+              <div class="row g-2">
+                <div class="col-12">
+                  <label class="form-label text-white-50 mb-1">Número de tarjeta</label>
+                  <input type="text" inputmode="numeric" autocomplete="cc-number" class="form-control form-control-sm" id="cc-number" placeholder="4111 1111 1111 1111" maxlength="19" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label text-white-50 mb-1">MM/AA</label>
+                  <input type="text" inputmode="numeric" autocomplete="cc-exp" class="form-control form-control-sm" id="cc-exp" placeholder="MM/AA" maxlength="5" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label text-white-50 mb-1">CVC</label>
+                  <input type="text" inputmode="numeric" autocomplete="cc-csc" class="form-control form-control-sm" id="cc-cvc" placeholder="123" maxlength="4" required>
+                </div>
+              </div>
+              <div id="card-errors" role="alert" class="form-text text-warning mt-2" style="margin-bottom:2px;"></div>
             </div>
-            <div class="d-flex justify-content-between" style="font-size:13px;opacity:0.92;">
-              <div><small>Nombre</small> <span><?=htmlspecialchars($_SESSION['user']['name'] ?? '')?></span></div>
-              <div><small>Expira</small> <span>MM/AA</span></div>
-            </div>
-            <div id="card-errors" role="alert" class="form-text text-warning mt-1" style="margin-bottom:2px;"></div>
-          </div>
+          <?php endif; ?>
         </div>
         <!-- Datos del cliente -->
         <div class="mb-2">
@@ -60,8 +90,8 @@ if (file_exists($stripePath)) {
           <label class="form-label">RFC (opcional)</label>
           <input class="form-control" name="rfc" value="<?=htmlspecialchars($_SESSION['user']['rfc'] ?? '')?>">
         </div>
-        <input type="hidden" name="payment_method" value="card">
-        <input type="hidden" id="stripeToken" name="stripeToken" value="">
+  <input type="hidden" name="payment_method" value="card">
+  <input type="hidden" id="stripeToken" name="stripeToken" value="">
 
         <div class="d-flex align-items-center mt-3">
           <button class="btn btn-primary" id="payBtn" type="submit">
@@ -74,15 +104,7 @@ if (file_exists($stripePath)) {
     </div>
   </div>
 </div>
-<?php
-  // Attempt to expose publishable key if available
-  $pk = '';
-  $stripeKeysFile = dirname(__DIR__, 4) . '/backend/app/Helpers/stripe_keys.php';
-  if (file_exists($stripeKeysFile)) {
-    include_once $stripeKeysFile;
-    if (defined('STRIPE_PUBLISHABLE_KEY')) $pk = STRIPE_PUBLISHABLE_KEY;
-  }
-?>
+<?php ?>
 <?php if ($pk): ?>
   <script src="https://js.stripe.com/v3/"></script>
   <script>
@@ -129,5 +151,72 @@ if (file_exists($stripePath)) {
     });
   </script>
 <?php else: ?>
-  <div class="alert alert-warning">STRIPE_PUBLISHABLE_KEY no está configurada. Para aceptar pagos reales con tarjeta configura STRIPE_PUBLISHABLE_KEY y STRIPE_SECRET_KEY en el servidor o crea un archivo <code>backend/.env</code> con estas claves.</div>
+  <script>
+    // Formateo básico de tarjeta
+    (function() {
+      const num = document.getElementById('cc-number');
+      const exp = document.getElementById('cc-exp');
+      const cvc = document.getElementById('cc-cvc');
+      const brandEl = document.getElementById('card-brand');
+      const form = document.getElementById('checkoutForm');
+      const err = document.getElementById('card-errors');
+
+      function detectBrand(digits) {
+        if (/^4/.test(digits)) return 'VISA';
+        if (/^5[1-5]/.test(digits)) return 'MASTERCARD';
+        if (/^3[47]/.test(digits)) return 'AMEX';
+        return '';
+      }
+
+      function formatNumber(v) {
+        return v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ').trim();
+      }
+      function formatExp(v) {
+        v = v.replace(/\D/g,'').slice(0,4);
+        if (v.length >= 3) return v.slice(0,2) + '/' + v.slice(2,4);
+        if (v.length >= 1 && parseInt(v[0],10) > 1) v = '0' + v; // quick autocorrect
+        return v;
+      }
+
+      num && num.addEventListener('input', function() {
+        const pos = this.selectionStart;
+        const prev = this.value;
+        this.value = formatNumber(this.value);
+        const digits = this.value.replace(/\s/g,'');
+        const b = detectBrand(digits);
+        brandEl && (brandEl.textContent = b);
+      });
+      exp && exp.addEventListener('input', function() {
+        this.value = formatExp(this.value);
+      });
+      cvc && cvc.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g,'').slice(0,4);
+      });
+
+      form && form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        err.textContent = '';
+
+        // Validación mínima
+        const digits = (num?.value || '').replace(/\s/g,'');
+        const expVal = (exp?.value || '');
+        const cvcVal = (cvc?.value || '');
+        let ok = true;
+        if (!digits || digits.length < 13) { ok = false; err.textContent = 'Número de tarjeta inválido.'; }
+        else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expVal)) { ok = false; err.textContent = 'Fecha de expiración inválida.'; }
+        else if (cvcVal.length < 3) { ok = false; err.textContent = 'CVC inválido.'; }
+
+        if (!ok) return;
+
+        // UI de procesamiento
+        document.getElementById('payBtn').disabled = true;
+        document.getElementById('paySpinner').style.display = 'inline-block';
+        document.getElementById('payLoader').style.display = 'inline-block';
+
+        // Simular token de Stripe y enviar
+        document.getElementById('stripeToken').value = 'tok_demo_' + Date.now();
+        setTimeout(function(){ form.submit(); }, 600);
+      });
+    })();
+  </script>
 <?php endif; ?>
