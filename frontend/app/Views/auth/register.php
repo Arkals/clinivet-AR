@@ -1,4 +1,5 @@
 <?php include __DIR__ . '/../layouts/main.php'; ?>
+<?php $csrf = \App\Helpers\Security::generateCSRFToken(); ?>
 
 <div class="auth-container">
   <div class="row justify-content-center align-items-center min-vh-100">
@@ -22,7 +23,8 @@
         <?php endif; ?>
 
         <!-- Registration Form -->
-        <form method="post" class="auth-form" id="registerForm">
+        <form method="post" class="auth-form" id="registerForm" autocomplete="on">
+          <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
@@ -56,6 +58,7 @@
                     name="email" 
                     placeholder="tu@email.com"
                     required
+                    autocomplete="username email" autocapitalize="off" spellcheck="false"
                   >
                   <div class="input-focus-border"></div>
                 </div>
@@ -76,6 +79,7 @@
                 placeholder="Mínimo 8 caracteres"
                 required
                 minlength="8"
+                autocomplete="new-password" autocapitalize="off" spellcheck="false"
               >
               <button type="button" class="password-toggle" onclick="togglePassword(this)">
                 <i class="bi bi-eye"></i>

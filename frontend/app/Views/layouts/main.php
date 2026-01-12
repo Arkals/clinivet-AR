@@ -130,8 +130,112 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
         }
         var a=document.getElementById('cookie-accept'); if(a) a.addEventListener('click', function(){send('accept')});
         var r=document.getElementById('cookie-reject'); if(r) r.addEventListener('click', function(){send('reject')});
+        })();
+      </script>
+    </div>
+
+    <!-- Per-tab session coordination (BroadcastChannel fallback to localStorage) -->
+    <div id="session-coordination">
+      <div id="session-transfer-modal" class="modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Sesión activa en otra pestaña</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+              <p>Se detectó que tu sesión está abierta en otra pestaña. ¿Deseas usar la sesión aquí y cerrar la sesión en la otra pestaña?</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="session-ignore" class="btn btn-outline-secondary" data-bs-dismiss="modal">Ignorar</button>
+              <button type="button" id="session-take" class="btn btn-primary">Usar sesión aquí</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        // Generate or reuse per-tab id in sessionStorage
+        try {
+          var TAB_KEY = 'clinivet_tab_id';
+          var tabId = sessionStorage.getItem(TAB_KEY);
+          if (!tabId) {
+            tabId = 'tab_' + Math.random().toString(36).slice(2,12) + '_' + Date.now().toString(36);
+            sessionStorage.setItem(TAB_KEY, tabId);
+          }
+        } catch(e) {
+          var tabId = 'tab_fallback_' + Date.now();
+        }
+
+        var bc = null;
+        try { bc = new BroadcastChannel('clinivet_session_channel'); } catch(e) { bc = null; }
+
+        var isUserLoggedIn = <?= !empty($_SESSION['user']) ? 'true' : 'false' ?>;
+        var isActiveTab = false;
+
+        function announceActive() {
+          if (bc) bc.postMessage({type:'active', tab: tabId});
+          else try { localStorage.setItem('clinivet_session_msg', JSON.stringify({type:'active', tab:tabId, t:Date.now()})); } catch(e){}
+          isActiveTab = true;
+        }
+
+        function sendWhoIsActive() {
+          if (bc) bc.postMessage({type:'whois-active', tab: tabId});
+          else try { localStorage.setItem('clinivet_session_msg', JSON.stringify({type:'whois-active', tab:tabId, t:Date.now()})); } catch(e){}
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+          if (isUserLoggedIn) {
+            setTimeout(announceActive, 200);
+          }
+          setTimeout(sendWhoIsActive, 400);
+        });
+
+        function handleMsg(msg) {
+          try { var data = (typeof msg === 'string') ? JSON.parse(msg) : msg; } catch(e){ return; }
+          if (!data || !data.type) return;
+          if (data.type === 'whois-active') {
+            if (isUserLoggedIn && isActiveTab) {
+              if (bc) bc.postMessage({type:'active', tab: tabId});
+              else try { localStorage.setItem('clinivet_session_msg', JSON.stringify({type:'active', tab:tabId, t:Date.now()})); } catch(e){}
+            }
+          } else if (data.type === 'active') {
+            if (data.tab && data.tab !== tabId) {
+              if (isUserLoggedIn && !isActiveTab) { showTransferModal(); }
+            }
+          } else if (data.type === 'take-session') {
+            if (data.tab && data.tab !== tabId) {
+              if (isUserLoggedIn) {
+                fetch('<?= $BASE ?>/logout', {method:'GET', headers:{'X-Requested-With':'XMLHttpRequest'}})
+                  .then(function(){ isUserLoggedIn = false; isActiveTab = false; try{ location.reload(); } catch(e){} })
+                  .catch(function(){ try{ location.reload(); } catch(e){} });
+              }
+            }
+          }
+        }
+
+        if (bc) { bc.onmessage = function(ev){ handleMsg(ev.data); }; }
+        else { window.addEventListener('storage', function(e){ if (e.key === 'clinivet_session_msg' && e.newValue) handleMsg(e.newValue); }); }
+
+        var transferModalEl = document.getElementById('session-transfer-modal');
+        var transferModal = null;
+        try { transferModal = new bootstrap.Modal(transferModalEl); } catch(e) { transferModal = null; }
+        function showTransferModal(){ if (transferModal) transferModal.show(); else alert('Sesión activa en otra pestaña. ¿Deseas usar la sesión aquí y cerrar la otra?'); }
+
+        document.getElementById('session-take').addEventListener('click', function(){
+          if (bc) bc.postMessage({type:'take-session', tab: tabId});
+          else try { localStorage.setItem('clinivet_session_msg', JSON.stringify({type:'take-session', tab:tabId, t:Date.now()})); } catch(e){}
+          isActiveTab = true;
+          if (transferModal) transferModal.hide();
+          setTimeout(function(){ try{ location.reload(); } catch(e){} }, 300);
+        });
+        document.getElementById('session-ignore').addEventListener('click', function(){ if (transferModal) transferModal.hide(); });
+
+        var logoutLinks = document.querySelectorAll('a[href="<?= $BASE ?>/logout"]');
+        logoutLinks.forEach(function(a){ a.addEventListener('click', function(){ if (bc) bc.postMessage({type:'take-session', tab: ''}); else try { localStorage.setItem('clinivet_session_msg', JSON.stringify({type:'take-session', tab:'', t:Date.now()})); } catch(e){} }); });
       })();
     </script>
-  </div>
-</body>
-</html>
+  </body>
+  </html>

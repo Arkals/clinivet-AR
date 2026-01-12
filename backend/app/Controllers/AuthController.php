@@ -24,6 +24,10 @@ class AuthController {
     public function register() {
         $error = null;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // CSRF protection
+            if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+                $error = "Token CSRF inválido. Por favor, intenta de nuevo.";
+            } else {
             // Rate limiting
             if (!Security::checkRateLimit('register', 3, 600)) {
                 $error = "Demasiados intentos. Intenta de nuevo en 10 minutos.";
@@ -70,6 +74,7 @@ class AuthController {
                 }
                 }
             }
+            }
         }
         include __DIR__ . '/../../../frontend/app/Views/auth/register.php';
     }
@@ -77,6 +82,10 @@ class AuthController {
     public function login() {
         $error = null;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // CSRF protection
+            if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+                $error = "Token CSRF inválido. Refresca la página e inténtalo nuevamente.";
+            } else {
             // Rate limiting: max 5 attempts per 5 minutes
             if (!Security::checkRateLimit('login', 5, 300)) {
                 $error = "Demasiados intentos de inicio de sesión. Intenta en 5 minutos.";
@@ -133,6 +142,7 @@ class AuthController {
             }
                 }
             }
+            }
         }
         include __DIR__ . '/../../../frontend/app/Views/auth/login.php';
     }
@@ -140,6 +150,13 @@ class AuthController {
     public function logout() {
         unset($_SESSION['user']);
         Security::regenerateSession();
+        // If AJAX request, return JSON so other tabs can logout silently
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+        if ($isAjax || (isset($_GET['silent']) && $_GET['silent'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true]);
+            exit;
+        }
         $BASE = \App\Helpers\Security::base();
         header('Location: ' . $BASE . '/home');
         exit;
