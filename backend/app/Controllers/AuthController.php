@@ -148,15 +148,33 @@ class AuthController {
     }
 
     public function logout() {
+        // Check if this is a silent logout request (from another tab via localStorage)
+        $isSilent = (isset($_GET['silent']) && $_GET['silent']) || 
+                    (isset($_POST['silent']) && $_POST['silent']);
+        
+        // Check if this is an AJAX request
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                  $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+        
+        // Clear the user session
         unset($_SESSION['user']);
+        session_destroy();
+        
+        // Regenerate session ID to prevent fixation attacks
+        if (function_exists('session_start')) {
+            session_start();
+        }
         Security::regenerateSession();
-        // If AJAX request, return JSON so other tabs can logout silently
-        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
-        if ($isAjax || (isset($_GET['silent']) && $_GET['silent'])) {
+        
+        // Return JSON for AJAX or silent requests
+        if ($isSilent || $isAjax) {
             header('Content-Type: application/json');
-            echo json_encode(['ok' => true]);
+            http_response_code(200);
+            echo json_encode(['ok' => true, 'message' => 'Logged out successfully']);
             exit;
         }
+        
+        // Regular logout - redirect to home
         $BASE = \App\Helpers\Security::base();
         header('Location: ' . $BASE . '/home');
         exit;

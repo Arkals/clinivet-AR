@@ -11,6 +11,7 @@ use App\Controllers\ProductController;
 use App\Controllers\OrderController;
 use App\Controllers\AuthController;
 session_start();
+
 $BASE = \App\Helpers\Security::base();
 $page = $_GET['page'] ?? 'home';
 $id = isset($_GET['id']) ? intval($_GET['id']) : null;

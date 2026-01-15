@@ -93,7 +93,8 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
   </div>
 </div>
 <div class="container content-wrap">
-</div> 
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- Cookie Consent Banner (visibility handled by JS based on cookie) -->
@@ -134,104 +135,236 @@ if (preg_match('#/backend/public$#', $baseUrl)) {
       </script>
     </div>
 
-    <!-- Per-tab session coordination (BroadcastChannel fallback to localStorage) -->
-    <div id="session-coordination">
-      <div id="session-transfer-modal" class="modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Sesión activa en otra pestaña</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-              <p>Se detectó que tu sesión está abierta en otra pestaña. ¿Deseas usar la sesión aquí y cerrar la sesión en la otra pestaña?</p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" id="session-ignore" class="btn btn-outline-secondary" data-bs-dismiss="modal">Ignorar</button>
-              <button type="button" id="session-take" class="btn btn-primary">Usar sesión aquí</button>
-            </div>
+    <!-- Multi-tab session management modal -->
+    <div id="sessionTakeoverModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="sessionModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title" id="sessionModalLabel">Sesión activa detectada</h5>
+          </div>
+          <div class="modal-body">
+            <p>Ya tienes una sesión activa en otra pestaña. ¿Quieres usar la sesión en esta pestaña?</p>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 0;">Si continúas aquí, la otra pestaña será cerrada automáticamente.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="sessionModalCancel" data-dismiss="modal">Mantener otra pestaña</button>
+            <button type="button" class="btn btn-primary" id="sessionModalTakeSession">Usar sesión aquí</button>
           </div>
         </div>
       </div>
     </div>
 
     <script>
+      // Multi-tab session management system
       (function(){
-        // per-tab identifier
-        try {
-          var TAB_KEY = 'clinivet_tab_id';
-          var tabId = sessionStorage.getItem(TAB_KEY);
-          if (!tabId) { tabId = 'tab_' + Math.random().toString(36).slice(2,12) + '_' + Date.now().toString(36); sessionStorage.setItem(TAB_KEY, tabId); }
-        } catch(e) { var tabId = 'tab_fallback_' + Date.now(); }
-
-        var bc = null; try { bc = new BroadcastChannel('clinivet_session_channel'); } catch(e){ bc = null; }
-        var isUserLoggedIn = <?= !empty($_SESSION['user']) ? 'true' : 'false' ?>;
-        var askedWhoisAt = null;
-
-        function sendWhoIsActive(){
-          askedWhoisAt = Date.now();
-          var msg = {type:'whois-active', tab: tabId, t: askedWhoisAt};
-          if (bc) bc.postMessage(msg); else try { localStorage.setItem('clinivet_session_msg', JSON.stringify(msg)); } catch(e){}
-        }
-
-        // When this tab sees a whois-active and it's the active session it should reply
-        function replyActive(){
-          var msg = {type:'active', tab: tabId, t: Date.now()};
-          if (bc) bc.postMessage(msg); else try { localStorage.setItem('clinivet_session_msg', JSON.stringify(msg)); } catch(e){}
-        }
-
-        document.addEventListener('DOMContentLoaded', function(){
-          // new tab asks who is active
-          setTimeout(sendWhoIsActive, 300);
-        });
-
-        function handleMsg(msg){
-          try { var data = (typeof msg === 'string') ? JSON.parse(msg) : msg; } catch(e){ return; }
-          if (!data || !data.type) return;
-          if (data.type === 'whois-active'){
-            // if this tab is logged in and visible, respond that we are active
-            if (isUserLoggedIn && document.visibilityState === 'visible') { replyActive(); }
-          } else if (data.type === 'active'){
-            // only consider 'active' responses that arrive shortly after our whois query
-            if (!askedWhoisAt) return;
-            if ((Date.now() - askedWhoisAt) > 5000) return; // too late
-            if (data.tab && data.tab !== tabId) {
-              // another tab is active -> show transfer modal
-              showTransferModal();
+        // Configuration
+        var CHECK_INTERVAL = 300; // 300ms delay before checking for active tabs
+        var RESPONSE_TIMEOUT = 2000; // 2s timeout for waiting responses
+        var BASE_URL = '<?= $BASE ?>';
+        
+        // Generate unique tab ID
+        function getOrCreateTabId() {
+          var tabId = sessionStorage.getItem('clinivet_tab_id');
+          if (!tabId) {
+            tabId = 'tab_' + Math.random().toString(36).slice(2, 12) + '_' + Date.now().toString(36);
+            try {
+              sessionStorage.setItem('clinivet_tab_id', tabId);
+            } catch(e) {
+              tabId = 'tab_fallback_' + Date.now();
             }
-          } else if (data.type === 'take-session'){
-            if (data.tab && data.tab !== tabId) {
-              if (isUserLoggedIn) {
-                // silent logout
-                fetch('<?= $BASE ?>/logout', {method:'GET', headers:{'X-Requested-With':'XMLHttpRequest'}})
-                  .then(function(){ isUserLoggedIn = false; try{ location.reload(); } catch(e){} })
-                  .catch(function(){ try{ location.reload(); } catch(e){} });
-              }
+          }
+          return tabId;
+        }
+
+        var tabId = getOrCreateTabId();
+        var isLoggedIn = <?= !empty($_SESSION['user']) ? 'true' : 'false' ?>;
+        var modalShown = false;
+        var sessionTaken = false;
+
+        // Event channel for inter-tab communication
+        var SESSION_CHANNEL = 'clinivet_session_channel';
+        var STORAGE_PREFIX = 'clinivet_';
+        
+        // Broadcast a message to other tabs
+        function broadcastMessage(type, data) {
+          var message = {
+            type: type,
+            tabId: tabId,
+            timestamp: Date.now(),
+            data: data || {}
+          };
+          try {
+            localStorage.setItem(STORAGE_PREFIX + 'event_' + Date.now() + '_' + Math.random(), JSON.stringify(message));
+          } catch(e) {
+            console.warn('localStorage not available for broadcast');
+          }
+        }
+
+        // Listen for messages from other tabs
+        function setupStorageListener() {
+          window.addEventListener('storage', function(event) {
+            if (!event.key || !event.key.startsWith(STORAGE_PREFIX + 'event_')) {
+              return;
+            }
+            
+            try {
+              var message = JSON.parse(event.newValue);
+              if (!message || message.tabId === tabId) return; // Ignore own messages
+              
+              handleMessage(message);
+            } catch(e) {
+              console.warn('Invalid message received', e);
+            }
+          });
+        }
+
+        // Handle incoming messages
+        function handleMessage(message) {
+          if (message.type === 'whois-active') {
+            // Another tab is asking who's active
+            if (isLoggedIn && !sessionTaken) {
+              // We're logged in, respond that we're active
+              setTimeout(function() {
+                broadcastMessage('active', { respondingTabId: tabId });
+              }, Math.random() * 100); // Small random delay to avoid collision
+            }
+          } 
+          else if (message.type === 'active') {
+            // Another tab responded that it's active - show modal
+            if (!modalShown && isLoggedIn) {
+              showSessionTakeoverModal();
+              modalShown = true;
+            }
+          }
+          else if (message.type === 'take-session') {
+            // Another tab is taking over the session
+            if (message.data.requestingTabId !== tabId && isLoggedIn) {
+              // We need to logout silently and reload
+              performSilentLogout();
+            }
+          }
+          else if (message.type === 'session-taken') {
+            // Another tab has successfully taken over
+            if (message.data.requestingTabId !== tabId && isLoggedIn && !sessionTaken) {
+              // They took it, reload this page
+              location.reload();
             }
           }
         }
 
-        if (bc) { bc.onmessage = function(ev){ handleMsg(ev.data); }; }
-        else { window.addEventListener('storage', function(e){ if (e.key === 'clinivet_session_msg' && e.newValue) handleMsg(e.newValue); }); }
-
-        var transferModalEl = document.getElementById('session-transfer-modal');
-        var transferModal = null; try { transferModal = new bootstrap.Modal(transferModalEl); } catch(e){ transferModal = null; }
-        function showTransferModal(){ if (transferModal) transferModal.show(); else if (confirm('Sesión activa en otra pestaña. ¿Usar sesión aquí y cerrar la otra?')) { takeSession(); } }
-
-        function takeSession(){
-          var msg = {type:'take-session', tab: tabId, t: Date.now()};
-          if (bc) bc.postMessage(msg); else try { localStorage.setItem('clinivet_session_msg', JSON.stringify(msg)); } catch(e){}
-          // reload to ensure authoritative UI
-          setTimeout(function(){ try{ location.reload(); } catch(e){} }, 300);
+        // Show the modal for taking over session
+        function showSessionTakeoverModal() {
+          var modalEl = document.getElementById('sessionTakeoverModal');
+          if (!modalEl) return;
+          
+          // Using Bootstrap 5 modal API
+          var modal = new (window.bootstrap ? window.bootstrap.Modal : function(){
+            // Fallback if Bootstrap not loaded yet
+            modalEl.style.display = 'block';
+            modalEl.classList.add('show');
+            modalEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
+          })(modalEl);
+          
+          if (window.bootstrap) {
+            modal.show();
+          }
         }
 
-        var takeBtn = document.getElementById('session-take'); if (takeBtn) takeBtn.addEventListener('click', function(){ if (transferModal) transferModal.hide(); takeSession(); });
-        var ignoreBtn = document.getElementById('session-ignore'); if (ignoreBtn) ignoreBtn.addEventListener('click', function(){ if (transferModal) transferModal.hide(); });
+        // Handle "Usar sesión aquí" button click
+        function setupModalHandlers() {
+          var cancelBtn = document.getElementById('sessionModalCancel');
+          var takeBtn = document.getElementById('sessionModalTakeSession');
+          var modal = document.getElementById('sessionTakeoverModal');
+          
+          if (takeBtn) {
+            takeBtn.addEventListener('click', function() {
+              sessionTaken = true;
+              // Notify other tabs that we're taking the session
+              broadcastMessage('take-session', { requestingTabId: tabId });
+              
+              // Give other tabs time to logout
+              setTimeout(function() {
+                broadcastMessage('session-taken', { requestingTabId: tabId });
+                // Reload to ensure clean state
+                setTimeout(function() {
+                  location.reload();
+                }, 500);
+              }, 1000);
+            });
+          }
+          
+          if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+              // Keep current tab as is, don't take session
+              if (modal && window.bootstrap) {
+                var bootstrapModal = window.bootstrap.Modal.getInstance(modal);
+                if (bootstrapModal) bootstrapModal.hide();
+              }
+            });
+          }
+        }
 
-        // Broadcast local manual logout as take-session with empty tab so other tabs refresh
-        var logoutLinks = document.querySelectorAll('a[href="<?= $BASE ?>/logout"]');
-        logoutLinks.forEach(function(a){ a.addEventListener('click', function(){ var msg = {type:'take-session', tab:'', t: Date.now()}; if (bc) bc.postMessage(msg); else try { localStorage.setItem('clinivet_session_msg', JSON.stringify(msg)); } catch(e){} }); });
+        // Perform silent logout in the background
+        function performSilentLogout() {
+          fetch(BASE_URL + '/logout?silent=1', {
+            method: 'GET',
+            credentials: 'include'
+          })
+          .then(function() {
+            // Reload page after logout
+            setTimeout(function() {
+              location.reload();
+            }, 500);
+          })
+          .catch(function(error) {
+            console.error('Silent logout failed:', error);
+            // Still reload even if logout failed
+            setTimeout(function() {
+              location.reload();
+            }, 500);
+          });
+        }
+
+        // Initialize on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+          setupStorageListener();
+          setupModalHandlers();
+          
+          // Only if logged in and we're a "new" tab, ask who's active
+          if (isLoggedIn) {
+            setTimeout(function() {
+              // Send whois-active query
+              broadcastMessage('whois-active', { queryingTabId: tabId });
+              
+              // Wait a bit to see if anyone responds
+              setTimeout(function() {
+                if (!modalShown) {
+                  // No one responded, we're the active tab
+                  try {
+                    localStorage.setItem(STORAGE_PREFIX + 'active_tab', tabId);
+                  } catch(e) {}
+                }
+              }, RESPONSE_TIMEOUT);
+            }, CHECK_INTERVAL);
+          }
+        });
+
+        // Store active tab ID on page visibility change
+        document.addEventListener('visibilitychange', function() {
+          if (!isLoggedIn) return;
+          
+          if (document.hidden) {
+            // Tab hidden
+          } else {
+            // Tab became visible
+            try {
+              localStorage.setItem(STORAGE_PREFIX + 'active_tab', tabId);
+            } catch(e) {}
+          }
+        });
       })();
     </script>
   </body>
   </html>
+
+

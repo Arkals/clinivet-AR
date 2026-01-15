@@ -1,61 +1,10 @@
 Options -Indexes
 RewriteEngine On
 
+# No external redirects here to avoid loops.
+# All routing is handled by the root /clinivet/.htaccess which internally
+# rewrites slugs to backend/public/index.php.
+
+# Serve existing assets if this folder is hit directly (rare in dev)
 RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule \.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff2?)$ - [L]
-
-RewriteRule ^(.+)$ index.php?route=$1 [L,QSA]
-
-<IfModule mod_rewrite.c>
-    Options -Indexes
-    RewriteEngine On
-
-    ##################################################
-    # 🚫 BLOQUEAR EXPLORACIÓN DE CARPETAS
-    ##################################################
-    IndexIgnore *
-
-    ##################################################
-    # 🔐 BLOQUEAR ARCHIVOS SENSIBLES
-    ##################################################
-    <FilesMatch "(^\.|(\.env|\.json|composer\.(json|lock)|package\.json|yarn\.lock|\.git|\.sql|\.log))$">
-        Require all denied
-    </FilesMatch>
-
-    ##################################################
-    # 🔥 SOLO index.php PUEDE EJECUTARSE
-    ##################################################
-    <FilesMatch "^(?!index\.php$).*\.php$">
-        Require all denied
-    </FilesMatch>
-
-    ##################################################
-    # 🚫 ANTI-HOTLINK (IMÁGENES)
-    ##################################################
-    RewriteCond %{HTTP_REFERER} !^$
-    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?tudominio\.com [NC]
-    RewriteRule \.(jpg|jpeg|png|gif|webp)$ - [F,NC]
-
-    ##################################################
-    # 📁 PERMITIR SOLO ARCHIVOS ESTÁTICOS NECESARIOS
-    ##################################################
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule \.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff2?)$ - [L]
-
-    ##################################################
-    # 🧠 FRONT CONTROLLER (RUTAS LIMPIAS)
-    ##################################################
-    RewriteRule ^(.+)$ index.php?route=$1 [L,QSA]
-
-</IfModule>
-
-##################################################
-# 🛡️ HEADERS DE SEGURIDAD (SIN ROMPER LOCAL)
-##################################################
-<IfModule mod_headers.c>
-    Header always set X-Frame-Options SAMEORIGIN
-    Header set X-Content-Type-Options nosniff
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
+RewriteRule ^ - [L]
